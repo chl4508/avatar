@@ -1,0 +1,3 @@
+rootProject.name = 'avatar'
+include 'grpc-module'
+findProject(':grpc-module')?.name = 'grpc-module'
