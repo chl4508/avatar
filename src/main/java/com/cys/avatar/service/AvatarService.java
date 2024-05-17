@@ -1,12 +1,19 @@
 package com.cys.avatar.service;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
+import java.util.Base64;
 import java.util.UUID;
 
 import org.apache.commons.fileupload.FileUploadException;
+import org.apache.commons.io.IOUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -16,12 +23,18 @@ import com.cys.avatar.domain.Resource;
 import com.cys.avatar.repository.AvatarRepository;
 
 import lombok.RequiredArgsConstructor;
+import org.webjars.NotFoundException;
+
+import javax.imageio.ImageIO;
+import javax.servlet.http.HttpServletResponse;
 
 @Service
 @RequiredArgsConstructor
 public class AvatarService {
 
 	private final AvatarRepository avatarRepository;
+
+	private final GrpcService grpcService;
 
 	@Transactional()
 	public UploadResponse uploadImage(MultipartFile file) throws Exception {
@@ -55,5 +68,31 @@ public class AvatarService {
 			.build();
 		avatarRepository.save(resource);
 		return UploadResponse.builder().id(id).build();
+	}
+
+	public void transferToImage(String id, String type, HttpServletResponse response) throws Exception{
+		String responseImageBase64 = grpcService.convertImage(type, getAvatarImage(id));
+
+		byte[] asBytes = Base64.getDecoder().decode(responseImageBase64);
+		InputStream targetStream = new ByteArrayInputStream(asBytes);
+
+		BufferedImage imBuff = ImageIO.read(targetStream);
+		response.setHeader("Content-Type", "image/png"+"; charset=UTF-8");
+		OutputStream osResponse = response.getOutputStream();
+		ImageIO.write(imBuff, "image/png", osResponse);
+	}
+
+	public String transferToJson(String id, String type) throws Exception{
+		return grpcService.convertImage(type, getAvatarImage(id));
+	}
+
+	public String getAvatarImage(String id) throws Exception{
+		Resource resource = avatarRepository.findById(id)
+				.orElseThrow(() -> new NotFoundException("데이터가 없습니다."));
+
+		InputStream inputStream = Files.newInputStream(Path.of(resource.getFilePath()));
+		byte[] bytes = IOUtils.toByteArray(inputStream);
+		String imageBase64 = Base64.getEncoder().encodeToString(bytes);
+		return Base64.getEncoder().encodeToString(bytes);
 	}
 }

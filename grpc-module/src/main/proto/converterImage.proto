@@ -1,18 +1,30 @@
 syntax = "proto3";
 
 option java_multiple_files = true;
-option java_package = "com.cys.grpc.proto.image.converter";
+option java_package = "com.cys.grpc.proto.imageconverter";
 
 package imageConverter;
 
 // The greeting service definition.
 service imageConverter {
   rpc UploadImage (UploadImageRequest) returns (UploadImageResponse) {}
+  rpc UploadJson (UploadJsonRequest) returns (UploadJsonResponse) {}
+}
+
+
+message UploadJsonRequest {
+  // Assume the image is sent as a Base64-encoded string.
+  string type = 1;
+  string imageBase64 = 2;
+}
+
+message UploadJsonResponse {
+  string imageJson = 2;
 }
 
 message UploadImageRequest {
   // Assume the image is sent as a Base64-encoded string.
-  string imageName = 1;
+  string type = 1;
   string imageBase64 = 2;
 }
 
